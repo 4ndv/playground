@@ -1,0 +1,13 @@
+[package]
+name = "game_of_life"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.15.0", features = ["wayland"] }
+bevy_egui = "0.31.1"
+bevy_pancam = { version = "0.16.0", features = ["bevy_egui"] }
+
+[features]
+default = ["fast-compile"]
+fast-compile = ["bevy/dynamic_linking"]
