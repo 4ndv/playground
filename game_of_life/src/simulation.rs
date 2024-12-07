@@ -26,11 +26,12 @@ pub enum SimulationState {
     Running,
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct Simulation {
     index: HashMap<Position, Entity>,
     pub population: usize,
     pub generation: usize,
+    pub speed: f64,
 }
 
 impl Simulation {
@@ -49,11 +50,16 @@ impl Simulation {
     }
 }
 
-fn simulation_tick(
-    mut sim: ResMut<Simulation>,
-    mut ew_spawn_cell: EventWriter<SpawnCell>,
-    mut ew_despawn_cell: EventWriter<DespawnCell>,
-) {
+impl Default for Simulation {
+    fn default() -> Self {
+        Self {
+            index: HashMap::<Position, Entity>::new(),
+            population: 0,
+            generation: 0,
+            speed: DEFAULT_SIMULATION_SPEED_HZ,
+        }
+    }
+}
 
 fn simulation_tick(mut commands: Commands, mut sim: ResMut<Simulation>) {
     let mut damaged = HashSet::new();
@@ -165,6 +171,18 @@ fn handle_reset_simulation(
     }
 }
 
+fn handle_change_simulation_speed(
+    mut commands: Commands,
+    mut ev_change_simulation_speed: EventReader<ChangeSimulationSpeed>,
+    mut sim: ResMut<Simulation>,
+) {
+    for event in ev_change_simulation_speed.read() {
+        sim.speed = event.0;
+
+        commands.insert_resource(Time::<Fixed>::from_hz(event.0));
+    }
+}
+
 pub struct SimulationPlugin;
 
 impl Plugin for SimulationPlugin {
@@ -173,6 +191,7 @@ impl Plugin for SimulationPlugin {
             .init_resource::<Simulation>()
             .add_event::<ToggleCell>()
             .add_event::<ResetSimulation>()
+            .add_event::<ChangeSimulationSpeed>()
             .add_systems(PostUpdate, handle_toggle_cell)
             .add_systems(PostUpdate, handle_reset_simulation)
             .add_systems(PostUpdate, handle_change_simulation_speed)

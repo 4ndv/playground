@@ -4,7 +4,7 @@ use bevy::{
 };
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
-use crate::simulation::{ResetSimulation, Simulation, SimulationState};
+use crate::simulation::{ChangeSimulationSpeed, ResetSimulation, Simulation, SimulationState};
 
 pub struct UiPlugin;
 
@@ -17,6 +17,7 @@ impl Plugin for UiPlugin {
 
 fn simulation_window(
     mut ew_reset_simulation: EventWriter<ResetSimulation>,
+    mut ew_change_simulation_speed: EventWriter<ChangeSimulationSpeed>,
     mut contexts: EguiContexts,
     diag: Res<DiagnosticsStore>,
     state: Res<State<SimulationState>>,
@@ -54,9 +55,21 @@ fn simulation_window(
                 next_state.set(SimulationState::Paused);
             }
 
-            if ui.add(reset_button).clicked() {
+            if ui.add_enabled(!is_running, reset_button).clicked() {
                 ew_reset_simulation.send(ResetSimulation);
             }
-        })
+        });
+
+        let mut speed = sim.speed;
+
+        ui.add(
+            egui::Slider::new(&mut speed, 1.0..=200.0)
+                .step_by(1.0)
+                .suffix("Hz"),
+        );
+
+        if speed != sim.speed {
+            ew_change_simulation_speed.send(ChangeSimulationSpeed(speed));
+        }
     });
 }
