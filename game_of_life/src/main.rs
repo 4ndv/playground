@@ -100,23 +100,20 @@ enum GameState {
 }
 
 #[derive(Resource, Default)]
-struct Cells {
+struct Simulation {
     index: HashMap<Position, Entity>,
 }
 
-impl Cells {
-    pub fn at_position(&self, pos: &Position) -> bool {
+impl Simulation {
+    pub fn state_at_position(&self, pos: &Position) -> bool {
         self.index.contains_key(pos)
     }
 
     pub fn alive_neighbours_at_position(&self, pos: Position) -> usize {
         let mut result = 0;
 
-        let x = pos.x as i32;
-        let y = pos.y as i32;
-
         for pos in pos.neighbours() {
-            result += self.at_position(&pos) as usize;
+            result += self.state_at_position(&pos) as usize;
         }
 
         result
@@ -151,7 +148,7 @@ fn main() {
         ))
         .insert_resource(ClearColor(Color::Srgba(Srgba::gray(0.01))))
         .init_state::<GameState>()
-        .init_resource::<Cells>()
+        .init_resource::<Simulation>()
         .add_event::<ToggleCell>()
         .add_event::<SpawnCell>()
         .add_event::<DespawnCell>()
@@ -266,7 +263,7 @@ fn handle_cell_click(
 fn handle_spawn_cell(
     mut commands: Commands,
     mut ev_spawn_cell: EventReader<SpawnCell>,
-    mut cells: ResMut<Cells>,
+    mut cells: ResMut<Simulation>,
 ) {
     for event in ev_spawn_cell.read() {
         let pos = event.0;
@@ -291,7 +288,7 @@ fn handle_spawn_cell(
 fn handle_despawn_cell(
     mut commands: Commands,
     mut ev_spawn_cell: EventReader<DespawnCell>,
-    mut cells: ResMut<Cells>,
+    mut cells: ResMut<Simulation>,
 ) {
     for event in ev_spawn_cell.read() {
         let pos = event.0;
@@ -307,12 +304,12 @@ fn handle_toggle_cell(
     mut ev_toggle_cell: EventReader<ToggleCell>,
     mut ew_spawn_cell: EventWriter<SpawnCell>,
     mut ew_despawn_cell: EventWriter<DespawnCell>,
-    cells: Res<Cells>,
+    cells: Res<Simulation>,
 ) {
     for event in ev_toggle_cell.read() {
         let pos = event.0;
 
-        match cells.at_position(&pos) {
+        match cells.state_at_position(&pos) {
             true => {
                 ew_despawn_cell.send(DespawnCell(pos));
             }
@@ -324,7 +321,7 @@ fn handle_toggle_cell(
 }
 
 fn simulation_tick(
-    cells: Res<Cells>,
+    cells: Res<Simulation>,
     mut ew_spawn_cell: EventWriter<SpawnCell>,
     mut ew_despawn_cell: EventWriter<DespawnCell>,
 ) {
@@ -338,7 +335,7 @@ fn simulation_tick(
     }
 
     for pos in damaged {
-        let alive = cells.at_position(&pos);
+        let alive = cells.state_at_position(&pos);
 
         let count = cells.alive_neighbours_at_position(pos);
 
