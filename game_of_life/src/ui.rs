@@ -19,7 +19,13 @@ fn simulation_window(mut contexts: EguiContexts, diag: Res<DiagnosticsStore>) {
         .and_then(|fps| fps.smoothed())
         .unwrap_or(0.0);
 
+    let frame_time = diag
+        .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
+        .and_then(|fps| fps.smoothed())
+        .unwrap_or(0.0);
+
     egui::Window::new("Simulation").show(contexts.ctx_mut(), |ui| {
-        ui.label(format!("FPS: {:.2}", fps))
+        ui.label(format!("FPS: {:.2}", fps));
+        ui.label(format!("Frame Time: {:.2}ms", frame_time));
     });
 }
