@@ -47,6 +47,7 @@ fn setup_grid(
             half_size: Vec2::new(HALF_MAX_WIDTH - 1000.0, HALF_MAX_HEIGHT - 500.0),
         })),
         MeshMaterial2d(materials.add(GridMaterial::default())),
+        Transform::from_xyz(0.0, 0.0, 1.0),
     ));
 }
 
