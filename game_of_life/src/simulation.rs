@@ -1,5 +1,4 @@
 use bevy::{
-    diagnostic::FrameTimeDiagnosticsPlugin,
     input::common_conditions::input_just_pressed,
     prelude::*,
     utils::{HashMap, HashSet},
@@ -30,6 +29,8 @@ pub enum SimulationState {
 #[derive(Resource, Default)]
 pub struct Simulation {
     index: HashMap<Position, Entity>,
+    pub population: usize,
+    pub generation: usize,
 }
 
 impl Simulation {
@@ -49,7 +50,7 @@ impl Simulation {
 }
 
 fn simulation_tick(
-    cells: Res<Simulation>,
+    mut sim: ResMut<Simulation>,
     mut ew_spawn_cell: EventWriter<SpawnCell>,
     mut ew_despawn_cell: EventWriter<DespawnCell>,
 ) {
@@ -57,15 +58,15 @@ fn simulation_tick(
     let mut spawn = HashSet::new();
     let mut yeet = HashSet::new();
 
-    for pos in cells.index.keys() {
+    for pos in sim.index.keys() {
         damaged.extend(pos.neighbours());
         damaged.insert(*pos);
     }
 
     for pos in damaged {
-        let alive = cells.state_at_position(&pos);
+        let alive = sim.state_at_position(&pos);
 
-        let count = cells.alive_neighbours_at_position(pos);
+        let count = sim.alive_neighbours_at_position(pos);
 
         match (alive, count) {
             (true, ..2) | (true, 4..) => {
@@ -85,6 +86,8 @@ fn simulation_tick(
     for pos in yeet {
         ew_despawn_cell.send(DespawnCell(pos));
     }
+
+    sim.generation += 1;
 }
 
 #[derive(Event)]
@@ -95,6 +98,9 @@ pub struct SpawnCell(pub Position);
 
 #[derive(Event)]
 pub struct DespawnCell(pub Position);
+
+#[derive(Event)]
+pub struct ResetSimulation;
 
 fn handle_spawn_cell(
     mut commands: Commands,
@@ -118,6 +124,7 @@ fn handle_spawn_cell(
             .id();
 
         cells.index.insert(pos, cell);
+        cells.population += 1;
     }
 }
 
@@ -132,7 +139,9 @@ fn handle_despawn_cell(
         let cell = cells.index.get(&pos).unwrap();
 
         commands.entity(*cell).despawn();
+
         cells.index.remove(&pos);
+        cells.population -= 1;
     }
 }
 
@@ -156,6 +165,22 @@ fn handle_toggle_cell(
     }
 }
 
+fn handle_reset_simulation(
+    mut commands: Commands,
+    mut ev_reset_simulation: EventReader<ResetSimulation>,
+    mut sim: ResMut<Simulation>,
+) {
+    for _ in ev_reset_simulation.read() {
+        sim.index
+            .iter()
+            .for_each(|(_, c)| commands.entity(*c).despawn());
+
+        sim.index.clear();
+        sim.population = 0;
+        sim.generation = 0;
+    }
+}
+
 pub struct SimulationPlugin;
 
 impl Plugin for SimulationPlugin {
@@ -165,12 +190,16 @@ impl Plugin for SimulationPlugin {
             .add_event::<ToggleCell>()
             .add_event::<SpawnCell>()
             .add_event::<DespawnCell>()
+            .add_event::<ResetSimulation>()
             .add_systems(Update, handle_toggle_cell)
             .add_systems(Update, handle_spawn_cell)
             .add_systems(Update, handle_despawn_cell)
+            .add_systems(Update, handle_reset_simulation)
             .add_systems(
                 Update,
-                simulation_tick.run_if(input_just_pressed(KeyCode::Space)),
+                simulation_tick.run_if(
+                    input_just_pressed(KeyCode::Space).and(in_state(SimulationState::Paused)),
+                ),
             );
     }
 }
