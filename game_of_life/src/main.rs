@@ -324,7 +324,6 @@ fn handle_toggle_cell(
 }
 
 fn simulation_tick(
-    alive_cells: Query<(&Cell, &Position)>,
     cells: Res<Cells>,
     mut ew_spawn_cell: EventWriter<SpawnCell>,
     mut ew_despawn_cell: EventWriter<DespawnCell>,
@@ -333,7 +332,7 @@ fn simulation_tick(
     let mut spawn = HashSet::new();
     let mut yeet = HashSet::new();
 
-    for (_, pos) in alive_cells.iter() {
+    for pos in cells.index.keys() {
         damaged.extend(pos.neighbours());
         damaged.insert(*pos);
     }
