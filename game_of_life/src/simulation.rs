@@ -54,6 +54,8 @@ fn simulation_tick(
     mut ew_spawn_cell: EventWriter<SpawnCell>,
     mut ew_despawn_cell: EventWriter<DespawnCell>,
 ) {
+
+fn simulation_tick(mut commands: Commands, mut sim: ResMut<Simulation>) {
     let mut damaged = HashSet::new();
     let mut spawn = HashSet::new();
     let mut yeet = HashSet::new();
@@ -80,11 +82,11 @@ fn simulation_tick(
     }
 
     for pos in spawn {
-        ew_spawn_cell.send(SpawnCell(pos));
+        spawn_cell_at(pos, &mut commands, &mut sim);
     }
 
     for pos in yeet {
-        ew_despawn_cell.send(DespawnCell(pos));
+        despawn_cell_at(pos, &mut commands, &mut sim);
     }
 
     sim.generation += 1;
@@ -94,72 +96,54 @@ fn simulation_tick(
 pub struct ToggleCell(pub Position);
 
 #[derive(Event)]
-pub struct SpawnCell(pub Position);
-
-#[derive(Event)]
-pub struct DespawnCell(pub Position);
-
-#[derive(Event)]
 pub struct ResetSimulation;
 
-fn handle_spawn_cell(
-    mut commands: Commands,
-    mut ev_spawn_cell: EventReader<SpawnCell>,
-    mut cells: ResMut<Simulation>,
-) {
-    for event in ev_spawn_cell.read() {
-        let pos = event.0;
+#[derive(Event)]
+pub struct ChangeSimulationSpeed(pub f64);
 
-        let cell = commands
-            .spawn(CellBundle {
-                cell: Cell {},
-                sprite: Sprite {
-                    color: Color::WHITE,
-                    custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
-                    ..default()
-                },
-                transform: pos.to_transform(),
-                position: pos,
-            })
-            .id();
+fn spawn_cell_at(pos: Position, commands: &mut Commands, cells: &mut ResMut<Simulation>) {
+    let cell = commands
+        .spawn(CellBundle {
+            cell: Cell {},
+            sprite: Sprite {
+                color: Color::WHITE,
+                custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
+                ..default()
+            },
+            transform: pos.to_transform(),
+            position: pos,
+        })
+        .id();
 
-        cells.index.insert(pos, cell);
-        cells.population += 1;
-    }
+    cells.index.insert(pos, cell);
+    cells.population += 1;
 }
 
-fn handle_despawn_cell(
-    mut commands: Commands,
-    mut ev_spawn_cell: EventReader<DespawnCell>,
-    mut cells: ResMut<Simulation>,
-) {
-    for event in ev_spawn_cell.read() {
-        let pos = event.0;
+fn despawn_cell_at(pos: Position, commands: &mut Commands, sim: &mut ResMut<Simulation>) {
+    let cell = sim.index.get(&pos).unwrap_or_else(|| {
+        panic!("Cell wasn't found in index at pos {:?}", pos);
+    });
 
-        let cell = cells.index.get(&pos).unwrap();
+    commands.entity(*cell).despawn();
 
-        commands.entity(*cell).despawn();
-
-        cells.index.remove(&pos);
-        cells.population -= 1;
-    }
+    sim.index.remove(&pos);
+    sim.population -= 1;
 }
 
 fn handle_toggle_cell(
     mut ev_toggle_cell: EventReader<ToggleCell>,
-    mut ew_spawn_cell: EventWriter<SpawnCell>,
-    mut ew_despawn_cell: EventWriter<DespawnCell>,
-    cells: Res<Simulation>,
+    mut commands: Commands,
+    mut sim: ResMut<Simulation>,
 ) {
     for event in ev_toggle_cell.read() {
         let pos = event.0;
 
-        match cells.state_at_position(&pos) {
+        match sim.state_at_position(&pos) {
             true => {
-                ew_despawn_cell.send(DespawnCell(pos));
+                despawn_cell_at(pos, &mut commands, &mut sim);
             }
             false => {
-                ew_spawn_cell.send(SpawnCell(pos));
+                spawn_cell_at(pos, &mut commands, &mut sim);
             }
         };
     }
@@ -188,18 +172,19 @@ impl Plugin for SimulationPlugin {
         app.init_state::<SimulationState>()
             .init_resource::<Simulation>()
             .add_event::<ToggleCell>()
-            .add_event::<SpawnCell>()
-            .add_event::<DespawnCell>()
             .add_event::<ResetSimulation>()
-            .add_systems(Update, handle_toggle_cell)
-            .add_systems(Update, handle_spawn_cell)
-            .add_systems(Update, handle_despawn_cell)
-            .add_systems(Update, handle_reset_simulation)
+            .add_systems(PostUpdate, handle_toggle_cell)
+            .add_systems(PostUpdate, handle_reset_simulation)
+            .add_systems(PostUpdate, handle_change_simulation_speed)
             .add_systems(
                 Update,
                 simulation_tick.run_if(
                     input_just_pressed(KeyCode::Space).and(in_state(SimulationState::Paused)),
                 ),
+            )
+            .add_systems(
+                FixedUpdate,
+                simulation_tick.run_if(in_state(SimulationState::Running)),
             );
     }
 }

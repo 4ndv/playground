@@ -38,6 +38,7 @@ fn main() {
             UiPlugin,
         ))
         .insert_resource(ClearColor(Color::Srgba(Srgba::gray(0.01))))
+        .insert_resource(Time::<Fixed>::from_hz(DEFAULT_SIMULATION_SPEED_HZ))
         .add_systems(Startup, setup)
         .add_systems(
             Update,

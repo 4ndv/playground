@@ -1,3 +1,5 @@
+pub const DEFAULT_SIMULATION_SPEED_HZ: f64 = 10.0;
+
 pub const BOARD_WIDTH: usize = 1000;
 pub const BOARD_HEIGHT: usize = 500;
 
