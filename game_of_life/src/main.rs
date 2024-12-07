@@ -136,8 +136,19 @@ struct CellBundle {
 }
 
 fn main() {
+    let window = Some(Window {
+        title: "Conway's Game of Life in Bevy".into(),
+        ..default()
+    });
+
     App::new()
-        .add_plugins((DefaultPlugins, PanCamPlugin))
+        .add_plugins((
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: window,
+                ..default()
+            }),
+            PanCamPlugin,
+        ))
         .insert_resource(ClearColor(Color::Srgba(Srgba::gray(0.01))))
         .init_state::<GameState>()
         .init_resource::<Cells>()
