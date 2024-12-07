@@ -1,8 +1,10 @@
 use bevy::{
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     input::common_conditions::input_just_pressed,
     prelude::*,
     utils::{HashMap, HashSet},
 };
+use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use bevy_pancam::{PanCam, PanCamPlugin};
 
 const BOARD_WIDTH: usize = 1000;
@@ -146,6 +148,8 @@ fn main() {
             }),
             PanCamPlugin,
         ))
+        .add_plugins(EguiPlugin)
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .insert_resource(ClearColor(Color::Srgba(Srgba::gray(0.01))))
         .init_state::<GameState>()
         .init_resource::<Simulation>()
@@ -165,6 +169,7 @@ fn main() {
             Update,
             simulation_tick.run_if(input_just_pressed(KeyCode::Space)),
         )
+        .add_systems(Update, simulation_window)
         .run();
 }
 
@@ -209,11 +214,16 @@ fn draw_grid(mut gizmos: Gizmos, query: Query<&OrthographicProjection>) {
 
 fn handle_cell_click(
     mut ew_toggle_cell: EventWriter<ToggleCell>,
+    mut egui_ctx: EguiContexts,
     buttons: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_query: Single<(&Camera, &GlobalTransform)>,
 ) {
     if !buttons.just_pressed(MouseButton::Left) {
+        return;
+    }
+
+    if egui_ctx.ctx_mut().wants_pointer_input() {
         return;
     }
 
@@ -357,4 +367,15 @@ fn simulation_tick(
     for pos in yeet {
         ew_despawn_cell.send(DespawnCell(pos));
     }
+}
+
+fn simulation_window(mut contexts: EguiContexts, diag: Res<DiagnosticsStore>) {
+    let fps = diag
+        .get(&FrameTimeDiagnosticsPlugin::FPS)
+        .and_then(|fps| fps.smoothed())
+        .unwrap_or(0.0);
+
+    egui::Window::new("Simulation").show(contexts.ctx_mut(), |ui| {
+        ui.label(format!("FPS: {:.2}", fps))
+    });
 }
