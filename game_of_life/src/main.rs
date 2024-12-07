@@ -2,6 +2,8 @@ use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     input::common_conditions::input_just_pressed,
     prelude::*,
+    render::render_resource::{AsBindGroup, ShaderRef},
+    sprite::{AlphaMode2d, Material2d, Material2dPlugin},
     utils::{HashMap, HashSet},
 };
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
@@ -134,6 +136,38 @@ struct CellBundle {
     position: Position,
 }
 
+#[derive(Asset, TypePath, AsBindGroup, Clone)]
+struct GridMaterial {
+    #[uniform(0)]
+    tile_size: f32,
+    #[uniform(1)]
+    half_max_width: f32,
+    #[uniform(2)]
+    half_max_height: f32,
+    alpha_mode: AlphaMode2d,
+}
+
+impl Material2d for GridMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/grid.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode2d {
+        self.alpha_mode
+    }
+}
+
+impl Default for GridMaterial {
+    fn default() -> Self {
+        Self {
+            tile_size: TILE_SIZE,
+            alpha_mode: AlphaMode2d::Blend,
+            half_max_width: HALF_MAX_WIDTH,
+            half_max_height: HALF_MAX_HEIGHT,
+        }
+    }
+}
+
 fn main() {
     let window = Some(Window {
         title: "Conway's Game of Life in Bevy".into(),
@@ -142,11 +176,17 @@ fn main() {
 
     App::new()
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: window,
-                ..default()
-            }),
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: window,
+                    ..default()
+                })
+                .set(AssetPlugin {
+                    watch_for_changes_override: Some(true),
+                    ..default()
+                }),
             PanCamPlugin,
+            Material2dPlugin::<GridMaterial>::default(),
         ))
         .add_plugins(EguiPlugin)
         .add_plugins(FrameTimeDiagnosticsPlugin::default())
@@ -157,7 +197,6 @@ fn main() {
         .add_event::<SpawnCell>()
         .add_event::<DespawnCell>()
         .add_systems(Startup, setup)
-        .add_systems(Update, draw_grid)
         .add_systems(
             Update,
             handle_cell_click.run_if(in_state(GameState::Paused)),
@@ -173,7 +212,11 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<GridMaterial>>,
+) {
     commands.spawn((
         Camera2d,
         PanCam {
@@ -187,29 +230,13 @@ fn setup(mut commands: Commands) {
             ..default()
         },
     ));
-}
 
-fn draw_grid(mut gizmos: Gizmos, query: Query<&OrthographicProjection>) {
-    let Ok(proj) = query.get_single() else {
-        return;
-    };
-
-    let mut intensity = 0.015;
-
-    if proj.scale > 2.2 {
-        intensity = 0.005;
-    } else if proj.scale > 1.5 {
-        intensity = 0.01;
-    }
-
-    gizmos
-        .grid_2d(
-            Isometry2d::IDENTITY,
-            UVec2::new(BOARD_WIDTH as u32, BOARD_HEIGHT as u32),
-            Vec2::new(TILE_SIZE, TILE_SIZE),
-            LinearRgba::gray(intensity),
-        )
-        .outer_edges();
+    commands.spawn((
+        Mesh2d(meshes.add(Rectangle {
+            half_size: Vec2::new(HALF_MAX_WIDTH - 1000.0, HALF_MAX_HEIGHT - 500.0),
+        })),
+        MeshMaterial2d(materials.add(GridMaterial::default())),
+    ));
 }
 
 fn handle_cell_click(
