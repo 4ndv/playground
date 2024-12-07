@@ -27,6 +27,9 @@ impl Position {
             y = BOARD_HEIGHT as i32 + y;
         }
 
+        x = x % BOARD_WIDTH as i32;
+        y = y % BOARD_HEIGHT as i32;
+
         Self {
             x: x as usize,
             y: y as usize,
