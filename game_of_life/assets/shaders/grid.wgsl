@@ -1,20 +1,23 @@
+//
+// Mostly based on this tutorial:
+// https://www.youtube.com/watch?v=peQaxcQ89SA
+//
+
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
 
 @group(2) @binding(0) var<uniform> tile_size: f32;
-@group(2) @binding(1) var<uniform> half_max_width: f32;
-@group(2) @binding(2) var<uniform> half_max_height: f32;
+
+const tau = 6.283185307179586;
+const intensity = .01;
+const thiccness = .07;
 
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
-    let intensity = 0.01;
+    let coords = mesh.world_position / tile_size;
 
-    let x_dist = 1.0 - (abs(half_max_width - mesh.world_position.x) % tile_size) / tile_size;
-    let y_dist = 1.0 - (abs(half_max_height - mesh.world_position.y) % tile_size) / tile_size;
+    let line = cos(coords * tau);
+    let alpha = smoothstep(1.0 - thiccness, 1.0, max(line.x, line.y));
 
-    let dist = max(x_dist, y_dist);
-
-    let val = smoothstep(0.88, 1.0, dist);
-
-    return vec4f(intensity, intensity, intensity, val);
+    return vec4f(intensity, intensity, intensity, alpha);
 }
 

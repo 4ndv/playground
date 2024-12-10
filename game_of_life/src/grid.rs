@@ -9,10 +9,6 @@ use bevy::{
 struct GridMaterial {
     #[uniform(0)]
     tile_size: f32,
-    #[uniform(1)]
-    half_max_width: f32,
-    #[uniform(2)]
-    half_max_height: f32,
     alpha_mode: AlphaMode2d,
 }
 
@@ -31,8 +27,6 @@ impl Default for GridMaterial {
         Self {
             tile_size: TILE_SIZE,
             alpha_mode: AlphaMode2d::Blend,
-            half_max_width: HALF_MAX_WIDTH,
-            half_max_height: HALF_MAX_HEIGHT,
         }
     }
 }
