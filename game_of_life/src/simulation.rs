@@ -66,9 +66,10 @@ fn simulation_tick(mut commands: Commands, mut sim: ResMut<Simulation>) {
     let mut spawn = HashSet::new();
     let mut yeet = HashSet::new();
 
+    damaged.extend(sim.index.keys());
+
     for pos in sim.index.keys() {
         damaged.extend(pos.neighbours());
-        damaged.insert(*pos);
     }
 
     for pos in damaged {
