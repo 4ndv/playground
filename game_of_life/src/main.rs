@@ -56,7 +56,7 @@ fn setup(mut commands: Commands) {
             min_y: -HALF_MAX_HEIGHT,
             max_y: HALF_MAX_HEIGHT,
             max_scale: 2.5,
-            min_scale: 1.0,
+            min_scale: 0.75,
             grab_buttons: vec![MouseButton::Right],
             ..default()
         },
