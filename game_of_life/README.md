@@ -2,7 +2,7 @@
 
 Conway's Game of Life implementation in Rust and Bevy.
 
-This is my very first Bevy project made during free evenings in less than a week, so expect some roughness in the code.
+This is my very first Bevy project made during free evenings in less than a week, so expect some (lots of) roughness in the code.
 
 ## Features
 

@@ -4,8 +4,6 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
-use rand::prelude;
-
 use crate::consts::*;
 use crate::position::*;
 
