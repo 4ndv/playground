@@ -3,8 +3,8 @@ use bevy::prelude::*;
 
 #[derive(Component, Debug, Default, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct Position {
-    x: usize,
-    y: usize,
+    pub x: usize,
+    pub y: usize,
 }
 
 impl Position {

@@ -4,6 +4,8 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
+use rand::prelude;
+
 use crate::consts::*;
 use crate::position::*;
 
@@ -162,13 +164,35 @@ fn handle_reset_simulation(
     mut sim: ResMut<Simulation>,
 ) {
     for _ in ev_reset_simulation.read() {
-        sim.index
-            .iter()
-            .for_each(|(_, c)| commands.entity(*c).despawn());
+        reset_simulation(&mut commands, &mut sim);
+    }
+}
 
-        sim.index.clear();
-        sim.population = 0;
-        sim.generation = 0;
+fn reset_simulation(commands: &mut Commands, sim: &mut ResMut<Simulation>) {
+    sim.index
+        .iter()
+        .for_each(|(_, c)| commands.entity(*c).despawn());
+
+    sim.index.clear();
+    sim.population = 0;
+    sim.generation = 0;
+}
+
+fn handle_randomize(mut commands: Commands, mut sim: ResMut<Simulation>) {
+    reset_simulation(&mut commands, &mut sim);
+
+    let mut alive = HashSet::new();
+
+    for x in 0..BOARD_WIDTH {
+        for y in 0..BOARD_HEIGHT {
+            if rand::random::<f32>() > RANDOMIZE_THRESHOLD {
+                alive.insert(Position { x, y });
+            }
+        }
+    }
+
+    for pos in alive {
+        spawn_cell_at(pos, &mut commands, &mut sim);
     }
 }
 
@@ -200,6 +224,12 @@ impl Plugin for SimulationPlugin {
                 Update,
                 simulation_tick.run_if(
                     input_just_pressed(KeyCode::Space).and(in_state(SimulationState::Paused)),
+                ),
+            )
+            .add_systems(
+                PostUpdate,
+                handle_randomize.run_if(
+                    input_just_pressed(KeyCode::KeyR).and(in_state(SimulationState::Paused)),
                 ),
             )
             .add_systems(

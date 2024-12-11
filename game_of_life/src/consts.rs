@@ -10,3 +10,5 @@ pub const MAX_HEIGHT: f32 = BOARD_HEIGHT as f32 * TILE_SIZE;
 
 pub const HALF_MAX_WIDTH: f32 = MAX_WIDTH / 2.0;
 pub const HALF_MAX_HEIGHT: f32 = MAX_HEIGHT / 2.0;
+
+pub const RANDOMIZE_THRESHOLD: f32 = 0.8;
