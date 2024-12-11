@@ -208,6 +208,17 @@ fn handle_change_simulation_speed(
     }
 }
 
+fn handle_toggle_state(
+    state: Res<State<SimulationState>>,
+    mut next_state: ResMut<NextState<SimulationState>>,
+) {
+    if *state.get() == SimulationState::Running {
+        next_state.set(SimulationState::Paused)
+    } else {
+        next_state.set(SimulationState::Running)
+    }
+}
+
 pub struct SimulationPlugin;
 
 impl Plugin for SimulationPlugin {
@@ -221,9 +232,13 @@ impl Plugin for SimulationPlugin {
             .add_systems(PostUpdate, handle_reset_simulation)
             .add_systems(PostUpdate, handle_change_simulation_speed)
             .add_systems(
+                PostUpdate,
+                handle_toggle_state.run_if(input_just_pressed(KeyCode::Space)),
+            )
+            .add_systems(
                 Update,
                 simulation_tick.run_if(
-                    input_just_pressed(KeyCode::Space).and(in_state(SimulationState::Paused)),
+                    input_just_pressed(KeyCode::Enter).and(in_state(SimulationState::Paused)),
                 ),
             )
             .add_systems(
